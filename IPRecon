@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Network range to scan, adjust according to your network.
+NETWORK="192.168.1.0/24"
+
+# Temporary files to store results
+ARP_FILE="/tmp/arp_scan.txt"
+DUPLICATE_FILE="/tmp/duplicates.txt"
+
+# Ensure old temporary files are removed
+rm -f $ARP_FILE $DUPLICATE_FILE
+
+# Perform a ping sweep to populate the ARP table
+echo "Performing ping sweep..."
+nmap -sn $NETWORK > /dev/null
+
+# Capture the ARP table
+echo "Capturing ARP table..."
+arp -a > $ARP_FILE
+
+# Parse the ARP table and find duplicate IP addresses
+echo "Finding duplicates..."
+awk '{print $1 " " $4}' $ARP_FILE | sort | uniq -d > $DUPLICATE_FILE
+
+# Check if there are any duplicates and display them
+if [[ -s $DUPLICATE_FILE ]]; then
+    echo "Duplicate IP addresses found:"
+    cat $DUPLICATE_FILE
+else
+    echo "No duplicate IP addresses found."
+fi
+
+# Clean up temporary files
+rm -f $ARP_FILE $DUPLICATE_FILE
+
+echo "IP conflict check completed."
