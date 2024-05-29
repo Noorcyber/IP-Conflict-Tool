@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# Function to display the design "Datto Netrunners"
+display_datto_netrunners() {
+    cat << "EOF"
+
+
+██╗██████╗ ██████╗ ███████╗ ██████╗ ██████╗ ███╗   ██╗
+██║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔═══██╗████╗  ██║
+██║██████╔╝██████╔╝█████╗  ██║     ██║   ██║██╔██╗ ██║
+██║██╔═══╝ ██╔══██╗██╔══╝  ██║     ██║   ██║██║╚██╗██║
+██║██║     ██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
+╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
+                                                      
+                                                                          
+                                                                                                                                                                                                                
+  By Noor Shaheed, Datto, Kaseya. 05/27/2024 Ip Conflict tool V.01
+EOF
+}
+
 # Network range to scan, adjust according to your network.
 NETWORK="192.168.1.0/24"
 
