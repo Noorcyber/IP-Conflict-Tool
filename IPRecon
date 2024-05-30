@@ -22,7 +22,20 @@ echo "Fetching ARP table..."
 /sbin/arp -a
 
 echo "Analyzing ARP table for IP conflicts..."
-conflicts=$(/sbin/arp -a | /usr/bin/awk '{print $2}' | tr -d '()' | sort | uniq -d)
+
+# Capture the ARP table output
+arp_output=$(/sbin/arp -a)
+
+# Debug: Print the ARP table output
+echo "ARP table output:"
+echo "$arp_output"
+
+# Extract IP addresses and look for duplicates
+conflicts=$(echo "$arp_output" | /usr/bin/awk '{print $2}' | tr -d '()' | sort | uniq -d)
+
+# Debug: Print the list of potential conflict IPs
+echo "Potential conflict IPs:"
+echo "$conflicts"
 
 if [ -n "$conflicts" ]; then
     echo "IP conflicts detected:"
@@ -30,4 +43,5 @@ if [ -n "$conflicts" ]; then
 else
     echo "No IP conflicts detected."
 fi
+
 
