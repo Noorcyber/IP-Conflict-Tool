@@ -4,19 +4,19 @@
 display_datto_netrunners() {
     cat << "EOF"
 
-
 ██╗██████╗ ██████╗ ███████╗ ██████╗ ██████╗ ███╗   ██╗
 ██║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔═══██╗████╗  ██║
 ██║██████╔╝██████╔╝█████╗  ██║     ██║   ██║██╔██╗ ██║
 ██║██╔═══╝ ██╔══██╗██╔══╝  ██║     ██║   ██║██║╚██╗██║
 ██║██║     ██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
 ╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
-                                                      
-                                                                          
-                                                                                                                                                                                                                
+
   By Noor Shaheed, Datto, Kaseya. 05/27/2024 Ip Conflict tool V.01
 EOF
 }
+
+# Display the design
+display_datto_netrunners
 
 echo "Fetching ARP table..."
 /sbin/arp -a
@@ -43,5 +43,3 @@ if [ -n "$conflicts" ]; then
 else
     echo "No IP conflicts detected."
 fi
-
-
