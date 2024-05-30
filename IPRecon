@@ -43,3 +43,7 @@ if [ -n "$conflicts" ]; then
 else
     echo "No IP conflicts detected."
 fi
+
+# Check for more IP conflict logs
+echo "Checking for IP conflict logs..."
+logread | grep "conflict"
