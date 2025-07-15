@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Function to display the design "Datto Netrunners"
 display_datto_netrunners() {
     cat << "EOF"
 
@@ -15,35 +14,52 @@ display_datto_netrunners() {
 EOF
 }
 
-# Display the design
 display_datto_netrunners
 
-# Use ip neigh instead of arp
-echo "Fetching ARP table using 'ip neigh'..."
+echo -e "\nFetching ARP table using 'ip neigh'...\n"
+
 arp_output=$(ip neigh)
 
-# Print the ARP output for debug
-echo "ARP table output:"
-echo "$arp_output"
+echo "ARP Table:"
+echo "-------------------------------------------------------------"
+printf "%-16s %-10s %-20s %-10s\n" "IP Address" "Interface" "MAC Address" "Status"
+echo "-------------------------------------------------------------"
 
-echo "Analyzing ARP table for IP conflicts..."
+# Format and print arp_output nicely
+while read -r line; do
+    # Parse the fields from ip neigh output
+    # Format varies: sometimes no MAC, sometimes no status
+    ip_addr=$(echo "$line" | awk '{print $1}')
+    iface=$(echo "$line" | awk '{print $3}')
+    mac=$(echo "$line" | awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}')
+    status=$(echo "$line" | awk '{print $NF}')
+    # If mac is empty, put N/A
+    [[ -z "$mac" ]] && mac="N/A"
+    printf "%-16s %-10s %-20s %-10s\n" "$ip_addr" "$iface" "$mac" "$status"
+done <<< "$arp_output"
 
-# Extract MACs and check for duplicates (MACs appearing more than once = conflict)
-conflicts=$(echo "$arp_output" | awk '{print $5}' | sort | uniq -d)
+echo -e "\nAnalyzing ARP table for IP conflicts..."
 
-echo "Potential conflicting MACs:"
-echo "$conflicts"
+# Find duplicate MAC addresses (ignoring N/A)
+conflicts=$(echo "$arp_output" | awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}' | grep -v "^$" | sort | uniq -d)
 
-if [ -n "$conflicts" ]; then
-    echo "IP conflicts detected:"
-    for mac in $conflicts; do
-        echo "MAC $mac appears on multiple IPs:"
-        echo "$arp_output" | grep "$mac"
-    done
-else
+if [ -z "$conflicts" ]; then
     echo "No IP conflicts detected."
+else
+    echo -e "\nIP conflicts detected:\n"
+    for mac in $conflicts; do
+        echo "MAC Address: $mac"
+        echo "------------------------"
+        # Show all IPs linked to this MAC
+        echo "$arp_output" | grep "$mac" | while read -r entry; do
+            ip_addr=$(echo "$entry" | awk '{print $1}')
+            iface=$(echo "$entry" | awk '{print $3}')
+            status=$(echo "$entry" | awk '{print $NF}')
+            printf "  %-16s %-10s %-10s\n" "$ip_addr" "$iface" "$status"
+        done
+        echo
+    done
 fi
 
-# Check for system logs related to IP conflict
 echo "Checking for IP conflict logs..."
 logread 2>/dev/null | grep -i conflict || echo "No conflict logs found."
