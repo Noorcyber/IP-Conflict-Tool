@@ -1,39 +1,49 @@
 #!/bin/bash
 
+# Function to display the design "Datto Netrunners"
 display_datto_netrunners() {
     cat << "EOF"
+
 ██╗██████╗ ██████╗ ███████╗ ██████╗ ██████╗ ███╗   ██╗
 ██║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔═══██╗████╗  ██║
 ██║██████╔╝██████╔╝█████╗  ██║     ██║   ██║██╔██╗ ██║
 ██║██╔═══╝ ██╔══██╗██╔══╝  ██║     ██║   ██║██║╚██╗██║
 ██║██║     ██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
-╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
+╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚══════╝ ╚═╝  ╚═══╝
 
-  By Noor Shaheed, Datto, Kaseya. 05/27/2024 Ip Conflict tool V.01
+  By Noor Shaheed, Datto, Kaseya. 05/27/2024 IP Conflict Tool V.01
 EOF
 }
 
+# Display the design
 display_datto_netrunners
 
-echo "Fetching ARP table..."
+# Use ip neigh instead of arp
+echo "Fetching ARP table using 'ip neigh'..."
 arp_output=$(ip neigh)
 
+# Print the ARP output for debug
 echo "ARP table output:"
 echo "$arp_output"
 
 echo "Analyzing ARP table for IP conflicts..."
 
+# Extract MACs and check for duplicates (MACs appearing more than once = conflict)
 conflicts=$(echo "$arp_output" | awk '{print $5}' | sort | uniq -d)
 
-echo "Potential conflict MACs:"
+echo "Potential conflicting MACs:"
 echo "$conflicts"
 
 if [ -n "$conflicts" ]; then
-    echo "IP conflicts detected (MACs responding to multiple IPs):"
-    echo "$conflicts"
+    echo "IP conflicts detected:"
+    for mac in $conflicts; do
+        echo "MAC $mac appears on multiple IPs:"
+        echo "$arp_output" | grep "$mac"
+    done
 else
     echo "No IP conflicts detected."
 fi
 
+# Check for system logs related to IP conflict
 echo "Checking for IP conflict logs..."
 logread 2>/dev/null | grep -i conflict || echo "No conflict logs found."
