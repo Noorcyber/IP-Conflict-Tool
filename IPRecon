@@ -61,3 +61,5 @@ else
     done
 fi
 
+echo "Checking for IP conflict logs..."
+logread 2>/dev/null | grep -i conflict || echo "No conflict logs found."
