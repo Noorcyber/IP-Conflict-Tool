@@ -26,21 +26,17 @@ printf "%-16s %-10s %-20s %-10s\n" "IP Address" "Interface" "MAC Address" "Statu
 echo "-------------------------------------------------------------"
 
 # Format and print arp_output nicely
-while read -r line; do
-    # Parse the fields from ip neigh output
-    # Format varies: sometimes no MAC, sometimes no status
+echo "$arp_output" | while read -r line; do
     ip_addr=$(echo "$line" | awk '{print $1}')
-    iface=$(echo "$line" | awk '{print $3}')
+    iface=$(echo "$line" | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
     mac=$(echo "$line" | awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}')
     status=$(echo "$line" | awk '{print $NF}')
-    # If mac is empty, put N/A
     [[ -z "$mac" ]] && mac="N/A"
     printf "%-16s %-10s %-20s %-10s\n" "$ip_addr" "$iface" "$mac" "$status"
-done <<< "$arp_output"
+done
 
 echo -e "\nAnalyzing ARP table for IP conflicts..."
 
-# Find duplicate MAC addresses (ignoring N/A)
 conflicts=$(echo "$arp_output" | awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}' | grep -v "^$" | sort | uniq -d)
 
 if [ -z "$conflicts" ]; then
@@ -50,10 +46,9 @@ else
     for mac in $conflicts; do
         echo "MAC Address: $mac"
         echo "------------------------"
-        # Show all IPs linked to this MAC
         echo "$arp_output" | grep "$mac" | while read -r entry; do
             ip_addr=$(echo "$entry" | awk '{print $1}')
-            iface=$(echo "$entry" | awk '{print $3}')
+            iface=$(echo "$entry" | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
             status=$(echo "$entry" | awk '{print $NF}')
             printf "  %-16s %-10s %-10s\n" "$ip_addr" "$iface" "$status"
         done
