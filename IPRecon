@@ -16,33 +16,29 @@ EOF
 
 display_datto_netrunners
 
+#!/bin/sh
+
 echo "\nFetching ARP table using 'ip neigh'...\n"
 
-# Save ARP table into temp file
-arp_output_file="/tmp/arp_table.txt"
-ip neigh > "$arp_output_file" 2>/dev/null
+arp_output="$(ip neigh 2>/dev/null)"
 
 echo "ARP Table:"
 echo "-------------------------------------------------------------"
 printf "%-16s %-10s %-20s %-10s\n" "IP Address" "Interface" "MAC Address" "Status"
 echo "-------------------------------------------------------------"
 
-# Parse and display
-while IFS= read -r line; do
+echo "$arp_output" | while IFS= read -r line; do
     ip_addr=$(echo "$line" | awk '{print $1}')
     iface=$(echo "$line" | awk '{print $3}')
     mac=$(echo "$line" | awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}')
     status=$(echo "$line" | awk '{print $NF}')
     [ -z "$mac" ] && mac="N/A"
     printf "%-16s %-10s %-20s %-10s\n" "$ip_addr" "$iface" "$mac" "$status"
-done < "$arp_output_file"
+done
 
 echo "\nAnalyzing ARP table for IP conflicts...\n"
 
-# Extract all MACs
-awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}' "$arp_output_file" \
-  | grep -v "^$" \
-  | sort | uniq -d > /tmp/conflicts.txt
+echo "$arp_output" | awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}' | grep -v "^$" | sort | uniq -d > /tmp/conflicts.txt
 
 if [ ! -s /tmp/conflicts.txt ]; then
     echo "✅ No IP conflicts detected."
@@ -51,7 +47,7 @@ else
     while IFS= read -r mac; do
         echo "MAC Address: $mac"
         echo "------------------------"
-        grep "$mac" "$arp_output_file" | while IFS= read -r entry; do
+        echo "$arp_output" | grep "$mac" | while IFS= read -r entry; do
             ip_addr=$(echo "$entry" | awk '{print $1}')
             iface=$(echo "$entry" | awk '{print $3}')
             status=$(echo "$entry" | awk '{print $NF}')
