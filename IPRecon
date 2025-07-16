@@ -16,8 +16,6 @@ EOF
 
 display_datto_netrunners
 
-#!/bin/sh
-
 echo "\nFetching ARP table using 'ip neigh'...\n"
 
 arp_output="$(ip neigh 2>/dev/null)"
