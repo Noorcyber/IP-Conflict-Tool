@@ -1,8 +1,7 @@
-#!/bin/bash
+#!/bin/sh
 
-# Display banner
 display_datto_netrunners() {
-    cat << "EOF"
+cat << "EOF"
 
 ██╗██████╗ ██████╗ ███████╗ ██████╗ ██████╗ ███╗   ██╗
 ██║██╔══██╗██╔══██╗██╔════╝██╔════╝██╔═══██╗████╗  ██║
@@ -17,55 +16,47 @@ EOF
 
 display_datto_netrunners
 
-echo -e "\nFetching ARP table using 'ip neigh'...\n"
+echo "\nFetching ARP table using 'ip neigh'...\n"
 
-# Collect ARP output line-by-line safely
-arp_lines=()
-while IFS= read -r line; do
-    arp_lines+=("$line")
-done < <(ip neigh)
+# Save ARP table into temp file
+arp_output_file="/tmp/arp_table.txt"
+ip neigh > "$arp_output_file" 2>/dev/null
 
 echo "ARP Table:"
 echo "-------------------------------------------------------------"
 printf "%-16s %-10s %-20s %-10s\n" "IP Address" "Interface" "MAC Address" "Status"
 echo "-------------------------------------------------------------"
 
-# Print formatted ARP table
-for line in "${arp_lines[@]}"; do
+# Parse and display
+while IFS= read -r line; do
     ip_addr=$(echo "$line" | awk '{print $1}')
     iface=$(echo "$line" | awk '{print $3}')
     mac=$(echo "$line" | awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}')
     status=$(echo "$line" | awk '{print $NF}')
-    [[ -z "$mac" ]] && mac="N/A"
+    [ -z "$mac" ] && mac="N/A"
     printf "%-16s %-10s %-20s %-10s\n" "$ip_addr" "$iface" "$mac" "$status"
-done
+done < "$arp_output_file"
 
-echo -e "\nAnalyzing ARP table for IP conflicts..."
+echo "\nAnalyzing ARP table for IP conflicts...\n"
 
-# Extract all MAC addresses and find duplicates
-macs=()
-for line in "${arp_lines[@]}"; do
-    mac=$(echo "$line" | awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}')
-    [[ -n "$mac" ]] && macs+=("$mac")
-done
+# Extract all MACs
+awk '{for(i=1;i<=NF;i++) if ($i=="lladdr") print $(i+1)}' "$arp_output_file" \
+  | grep -v "^$" \
+  | sort | uniq -d > /tmp/conflicts.txt
 
-# Detect duplicates
-conflicts=$(printf "%s\n" "${macs[@]}" | sort | uniq -d)
-
-if [[ -z "$conflicts" ]]; then
+if [ ! -s /tmp/conflicts.txt ]; then
     echo "✅ No IP conflicts detected."
 else
-    echo -e "\n⚠️ IP conflicts detected:\n"
-    for mac in $conflicts; do
+    echo "⚠️  IP conflicts detected:\n"
+    while IFS= read -r mac; do
         echo "MAC Address: $mac"
         echo "------------------------"
-        for entry in "${arp_lines[@]}"; do
-            echo "$entry" | grep -q "$mac" || continue
+        grep "$mac" "$arp_output_file" | while IFS= read -r entry; do
             ip_addr=$(echo "$entry" | awk '{print $1}')
             iface=$(echo "$entry" | awk '{print $3}')
             status=$(echo "$entry" | awk '{print $NF}')
             printf "  %-16s %-10s %-10s\n" "$ip_addr" "$iface" "$status"
         done
         echo
-    done
+    done < /tmp/conflicts.txt
 fi
